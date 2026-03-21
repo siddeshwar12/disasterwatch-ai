@@ -34,10 +34,14 @@ def predict_weather_risk(city):
 # -----------------------------------
 
 def predict_weather_risk_sequence(sequence):
+    # sequence shape: (1, timesteps, features) or (timesteps, features)
+    seq = np.array(sequence)
+    if seq.ndim == 3:
+        seq = seq[0]  # collapse batch dim → (timesteps, features)
 
-    rainfall = np.mean(sequence[:, 0])
-    wind = np.mean(sequence[:, 1])
-    humidity = np.mean(sequence[:, 2])
+    rainfall = np.mean(seq[:, 0])
+    wind = np.mean(seq[:, 1])
+    humidity = np.mean(seq[:, 2])
 
     risk_score = 0.4 * rainfall + 0.3 * wind + 0.3 * humidity
     risk_score = max(0, min(risk_score / 100, 1))

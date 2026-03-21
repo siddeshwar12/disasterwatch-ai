@@ -1,12 +1,11 @@
+import os
 import numpy as np
-
 from tensorflow.keras.preprocessing import image
-
-# Load CNN model
 from tensorflow.keras.models import load_model
 
+_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 model = load_model(
-    "models/final_cnn_3class_model.keras",
+    os.path.join(_BASE, "models", "final_cnn_3class_model.keras"),
     compile=False
 )
 

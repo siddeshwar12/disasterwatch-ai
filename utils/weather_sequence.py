@@ -1,8 +1,9 @@
+import os
 import numpy as np
 import joblib
 
-# Load saved scaler
-scaler = joblib.load("models/weather_scaler.pkl")
+_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+scaler = joblib.load(os.path.join(_BASE, "models", "weather_scaler.pkl"))
 
 
 def prepare_weather_sequence(weather_data):

@@ -1,17 +1,23 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-model_name = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+_MODEL_NAME = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+_tokenizer = None
+_model = None
 
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSequenceClassification.from_pretrained(model_name)
 
-model.eval()
+def _load_model():
+    global _tokenizer, _model
+    if _tokenizer is None:
+        _tokenizer = AutoTokenizer.from_pretrained(_MODEL_NAME)
+        _model = AutoModelForSequenceClassification.from_pretrained(_MODEL_NAME)
+        _model.eval()
 
 
 def predict_text_risk(text):
+    _load_model()
 
-    inputs = tokenizer(
+    inputs = _tokenizer(
         text,
         return_tensors="pt",
         truncation=True,
@@ -20,36 +26,17 @@ def predict_text_risk(text):
     )
 
     with torch.no_grad():
-        outputs = model(**inputs)
+        outputs = _model(**inputs)
 
-    logits = outputs.logits
-    probabilities = torch.softmax(logits, dim=1)
+    probabilities = torch.softmax(outputs.logits, dim=1)
 
-    # sentiment model output
     negative = probabilities[0][0].item()
-    neutral = probabilities[0][1].item()
-    positive = probabilities[0][2].item()
 
-    # disasters correlate strongly with negative sentiment
-    disaster_score = negative
-
-    # boost disaster keywords
     disaster_keywords = [
-        "flood", "flooding",
-        "heavy rainfall",
-        "cyclone",
-        "storm",
-        "overflow",
-        "waterlogging",
-        "dam break",
-        "landslide"
+        "flood", "flooding", "heavy rainfall", "cyclone",
+        "storm", "overflow", "waterlogging", "dam break", "landslide"
     ]
 
-    boost = 0
-    for word in disaster_keywords:
-        if word in text.lower():
-            boost += 0.15
+    boost = sum(0.15 for word in disaster_keywords if word in text.lower())
 
-    risk_score = min(1.0, disaster_score + boost)
-
-    return float(risk_score)
+    return float(min(1.0, negative + boost))
