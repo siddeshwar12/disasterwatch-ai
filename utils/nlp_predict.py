@@ -1,40 +1,48 @@
-from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
-import tensorflow as tf
+"""
+Lightweight keyword-based NLP risk scorer.
+No model download required — works instantly on Railway.
+"""
 
-_MODEL_NAME = "cardiffnlp/twitter-roberta-base-sentiment-latest"
-_tokenizer = None
-_model = None
+# Weighted disaster keywords
+_HIGH_RISK = [
+    "flood", "flooding", "cyclone", "hurricane", "tornado", "tsunami",
+    "earthquake", "landslide", "dam break", "dam burst", "overflow",
+    "disaster", "catastrophe", "emergency", "evacuation", "rescue",
+    "heavy rainfall", "extreme rain", "storm surge", "waterlogging",
+    "inundation", "submerged", "washed away", "collapsed"
+]
+
+_MEDIUM_RISK = [
+    "storm", "heavy rain", "strong wind", "warning", "alert",
+    "rainfall", "thunder", "lightning", "hail", "downpour",
+    "rising water", "river level", "high tide", "monsoon",
+    "damage", "injured", "casualties", "affected"
+]
+
+_LOW_RISK = [
+    "rain", "wind", "cloudy", "wet", "drizzle", "overcast",
+    "forecast", "weather", "humidity", "temperature"
+]
 
 
-def _load_model():
-    global _tokenizer, _model
-    if _tokenizer is None:
-        _tokenizer = AutoTokenizer.from_pretrained(_MODEL_NAME)
-        _model = TFAutoModelForSequenceClassification.from_pretrained(_MODEL_NAME, from_pt=True)
+def predict_text_risk(text: str) -> float:
+    """
+    Returns a risk score between 0.0 and 1.0 based on keyword matching.
+    """
+    text_lower = text.lower()
 
+    score = 0.0
 
-def predict_text_risk(text):
-    _load_model()
+    for kw in _HIGH_RISK:
+        if kw in text_lower:
+            score += 0.25
 
-    inputs = _tokenizer(
-        text[:512],
-        return_tensors="tf",
-        truncation=True,
-        padding=True,
-        max_length=128
-    )
+    for kw in _MEDIUM_RISK:
+        if kw in text_lower:
+            score += 0.10
 
-    outputs = _model(**inputs)
-    probs = tf.nn.softmax(outputs.logits, axis=1).numpy()[0]
+    for kw in _LOW_RISK:
+        if kw in text_lower:
+            score += 0.03
 
-    # label order: negative=0, neutral=1, positive=2
-    negative = float(probs[0])
-
-    disaster_keywords = [
-        "flood", "flooding", "heavy rainfall", "cyclone",
-        "storm", "overflow", "waterlogging", "dam break", "landslide"
-    ]
-
-    boost = sum(0.15 for word in disaster_keywords if word in text.lower())
-
-    return float(min(1.0, negative + boost))
+    return float(min(1.0, score))
