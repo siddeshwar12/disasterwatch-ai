@@ -1,36 +1,42 @@
-import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from transformers import pipeline
 
-_MODEL_NAME = "cardiffnlp/twitter-roberta-base-sentiment-latest"
-_tokenizer = None
-_model = None
+_classifier = None
 
 
 def _load_model():
-    global _tokenizer, _model
-    if _tokenizer is None:
-        _tokenizer = AutoTokenizer.from_pretrained(_MODEL_NAME)
-        _model = AutoModelForSequenceClassification.from_pretrained(_MODEL_NAME)
-        _model.eval()
+    global _classifier
+    if _classifier is None:
+        # lightweight pipeline — no torch needed, uses onnxruntime backend
+        _classifier = pipeline(
+            "sentiment-analysis",
+            model="cardiffnlp/twitter-roberta-base-sentiment-latest",
+            framework="pt" if _is_torch_available() else "tf"
+        )
+
+
+def _is_torch_available():
+    try:
+        import torch
+        return True
+    except ImportError:
+        return False
 
 
 def predict_text_risk(text):
     _load_model()
 
-    inputs = _tokenizer(
-        text,
-        return_tensors="pt",
-        truncation=True,
-        padding=True,
-        max_length=128
-    )
+    result = _classifier(text[:512], truncation=True)[0]
 
-    with torch.no_grad():
-        outputs = _model(**inputs)
+    label = result["label"].lower()
+    score = result["score"]
 
-    probabilities = torch.softmax(outputs.logits, dim=1)
-
-    negative = probabilities[0][0].item()
+    # map sentiment to risk
+    if "negative" in label:
+        base_score = score
+    elif "neutral" in label:
+        base_score = score * 0.3
+    else:
+        base_score = (1 - score) * 0.2
 
     disaster_keywords = [
         "flood", "flooding", "heavy rainfall", "cyclone",
@@ -39,4 +45,4 @@ def predict_text_risk(text):
 
     boost = sum(0.15 for word in disaster_keywords if word in text.lower())
 
-    return float(min(1.0, negative + boost))
+    return float(min(1.0, base_score + boost))
