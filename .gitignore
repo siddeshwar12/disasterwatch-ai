@@ -1,6 +1,19 @@
 __pycache__/
+**/__pycache__/
 *.pyc
+*.pyo
+*.pyd
 .env
 .DS_Store
-test_*.py
-test_image.jpg
+.venv/
+venv/
+
+# Training dataset images — not needed on Railway
+models/cyclone/
+models/flood/
+
+# Training script
+train_cnn.py
+
+# Unused model artifacts
+models/weather_scaler.pkl

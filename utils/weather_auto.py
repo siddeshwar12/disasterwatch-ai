@@ -52,6 +52,39 @@ def build_weather_sequence(city):
 
 def automatic_weather_risk(city):
     sequence = build_weather_sequence(city)
-    sequence = sequence.reshape(1, sequence.shape[0], sequence.shape[1])
-    risk = predict_weather_risk_sequence(sequence)
+    seq_input = sequence.reshape(1, sequence.shape[0], sequence.shape[1])
+    risk = predict_weather_risk_sequence(seq_input)
     return risk
+
+
+def automatic_weather_risk_with_data(city):
+    """Returns (risk_score, {temp, humidity, wind, description}) using live API."""
+    lat, lon = get_coordinates(city)
+
+    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric"
+    resp = requests.get(url, timeout=8)
+    current = resp.json()
+
+    temp     = current["main"]["temp"]
+    humidity = current["main"]["humidity"]
+    wind     = current["wind"]["speed"]
+    desc     = current["weather"][0]["description"].title() if current.get("weather") else "N/A"
+    feels    = current["main"].get("feels_like", temp)
+    pressure = current["main"].get("pressure", 1013)
+
+    # build sequence for risk score
+    sequence = build_weather_sequence(city)
+    seq_input = sequence.reshape(1, sequence.shape[0], sequence.shape[1])
+    risk = predict_weather_risk_sequence(seq_input)
+
+    weather_info = {
+        "temp": temp,
+        "feels_like": feels,
+        "humidity": humidity,
+        "wind": wind,
+        "description": desc,
+        "pressure": pressure,
+        "lat": lat,
+        "lon": lon,
+    }
+    return risk, weather_info

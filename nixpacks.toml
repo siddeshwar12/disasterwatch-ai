@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["python311", "gcc", "libstdcxx5"]
+nixPkgs = ["python311", "gcc", "libgomp"]
 
 [phases.install]
 cmds = ["pip install --upgrade pip", "pip install -r requirements.txt"]

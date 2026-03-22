@@ -42,20 +42,24 @@ def dynamic_weights(weather_score, cnn_score, nlp_score):
 # -------------------------------------------------
 
 def fuse_risk(weather_score, cnn_score, nlp_score):
-
-    w_weather, w_cnn, w_nlp = dynamic_weights(
-        weather_score,
-        cnn_score,
-        nlp_score
-    )
+    # Weather is the primary reliable signal.
+    # In auto mode CNN mirrors weather, NLP is from neutral news search.
+    W_WEATHER = 0.55
+    W_CNN     = 0.25
+    W_NLP     = 0.20
 
     final_risk = (
-        w_weather * weather_score +
-        w_cnn * cnn_score +
-        w_nlp * nlp_score
+        W_WEATHER * weather_score +
+        W_CNN     * cnn_score +
+        W_NLP     * nlp_score
     )
 
-    return final_risk, w_weather, w_cnn, w_nlp
+    # weighted contributions for display
+    w_weather = W_WEATHER * weather_score
+    w_cnn     = W_CNN     * cnn_score
+    w_nlp     = W_NLP     * nlp_score
+
+    return float(min(1.0, final_risk)), w_weather, w_cnn, w_nlp
 
 
 # -------------------------------------------------

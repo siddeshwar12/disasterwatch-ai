@@ -4,26 +4,30 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras.models import load_model
 
 _BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-model = load_model(
-    os.path.join(_BASE, "models", "final_cnn_3class_model.keras"),
-    compile=False
-)
+
+# Load 2-class model (cyclone=0, flood=1)
+_MODEL_PATH = os.path.join(_BASE, "models", "final_cnn_2class_model.keras")
+model = load_model(_MODEL_PATH, compile=False)
+
+# Class labels in training order
+CLASS_LABELS = ["Cyclone", "Flood"]
 
 
-def predict_cnn_risk(img_path):
+def predict_cnn_risk(img_path: str):
+    """
+    Returns (risk_score, predicted_class).
+    risk_score: 0.0–1.0  (both cyclone and flood are disaster classes,
+                           so score = max probability among disaster classes)
+    predicted_class: "Cyclone" or "Flood"
+    """
+    img = image.load_img(img_path, target_size=(224, 224))
+    arr = image.img_to_array(img) / 255.0
+    arr = np.expand_dims(arr, axis=0)
 
-    img = image.load_img(img_path, target_size=(300,300))
+    prediction = model.predict(arr, verbose=0)[0]   # [p_cyclone, p_flood]
 
-    img_array = image.img_to_array(img)
+    predicted_idx   = int(np.argmax(prediction))
+    predicted_class = CLASS_LABELS[predicted_idx]
+    risk_score      = float(np.max(prediction))     # confidence = risk
 
-    img_array = img_array / 255.0
-
-    img_array = np.expand_dims(img_array, axis=0)
-
-    prediction = model.predict(img_array)[0]
-
-    normal_prob = prediction[2]
-
-    risk_score = 1 - normal_prob
-
-    return float(risk_score)
+    return risk_score, predicted_class
