@@ -5,7 +5,10 @@ from geopy.geocoders import Nominatim
 from utils.weather_predict import predict_weather_risk_sequence
 
 
-API_KEY = "c2653e60394e02dbb312652f570b0a6d"
+import os
+API_KEY = os.environ.get("OPENWEATHER_API_KEY", "")
+if not API_KEY:
+    raise EnvironmentError("OPENWEATHER_API_KEY environment variable is not set.")
 
 
 def get_coordinates(city):
