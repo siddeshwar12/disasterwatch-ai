@@ -7,8 +7,6 @@ from utils.weather_predict import predict_weather_risk_sequence
 
 import os
 API_KEY = os.environ.get("OPENWEATHER_API_KEY", "")
-if not API_KEY:
-    raise EnvironmentError("OPENWEATHER_API_KEY environment variable is not set.")
 
 
 def get_coordinates(city):
